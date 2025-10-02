@@ -7,6 +7,8 @@ package pki
 import (
 	"crypto"
 	"crypto/x509"
+	"encoding/asn1"
+	"encoding/base64"
 	"encoding/json"
 	"encoding/pem"
 	"fmt"
@@ -610,6 +612,16 @@ func (agent *openbaoPKIAgent) SignCSR(csr []byte, ttl string) (certs.Certificate
 		existingIPs = append(existingIPs, ip.String())
 	}
 
+	var otherSANs []string
+	for _, ext := range csrData.Extensions {
+		if ext.Id.Equal(asn1.ObjectIdentifier{2, 5, 29, 17}) {
+			continue
+		}
+		oidStr := ext.Id.String()
+		valueBase64 := base64.StdEncoding.EncodeToString(ext.Value)
+		otherSANs = append(otherSANs, fmt.Sprintf("%s;BASE64:%s", oidStr, valueBase64))
+	}
+
 	defaultDNSNames, defaultIPSANs, err := agent.getIntermediateCADefaultSANs()
 	if err != nil {
 		defaultDNSNames = []string{}
@@ -661,6 +673,12 @@ func (agent *openbaoPKIAgent) SignCSR(csr []byte, ttl string) (certs.Certificate
 	if len(allIPs) > 0 {
 		ipSansValue := strings.Join(allIPs, ",")
 		secretValues["ip_sans"] = ipSansValue
+	}
+
+	// Add custom extensions (attestation OIDs) to other_sans
+	if len(otherSANs) > 0 {
+		otherSansValue := strings.Join(otherSANs, ",")
+		secretValues["other_sans"] = otherSansValue
 	}
 
 	secret, err := agent.client.Logical().Write(agent.signURL, secretValues)

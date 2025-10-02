@@ -201,7 +201,7 @@ if [ ! -f /opt/openbao/data/configured ]; then
   [ -n "$AM_CERTS_OPENBAO_PKI_CA_ST" ] && INTERMEDIATE_CSR_CMD="$INTERMEDIATE_CSR_CMD province=\"$AM_CERTS_OPENBAO_PKI_CA_ST\""
   [ -n "$AM_CERTS_OPENBAO_PKI_CA_ADDR" ] && INTERMEDIATE_CSR_CMD="$INTERMEDIATE_CSR_CMD street_address=\"$AM_CERTS_OPENBAO_PKI_CA_ADDR\""
   [ -n "$AM_CERTS_OPENBAO_PKI_CA_PO" ] && INTERMEDIATE_CSR_CMD="$INTERMEDIATE_CSR_CMD postal_code=\"$AM_CERTS_OPENBAO_PKI_CA_PO\""
-  
+
   [ -n "$AM_CERTS_OPENBAO_PKI_CA_DNS_NAMES" ] && INTERMEDIATE_CSR_CMD="$INTERMEDIATE_CSR_CMD alt_names=\"$AM_CERTS_OPENBAO_PKI_CA_DNS_NAMES\""
   [ -n "$AM_CERTS_OPENBAO_PKI_CA_IP_ADDRESSES" ] && INTERMEDIATE_CSR_CMD="$INTERMEDIATE_CSR_CMD ip_sans=\"$AM_CERTS_OPENBAO_PKI_CA_IP_ADDRESSES\""
   [ -n "$AM_CERTS_OPENBAO_PKI_CA_URI_SANS" ] && INTERMEDIATE_CSR_CMD="$INTERMEDIATE_CSR_CMD uri_sans=\"$AM_CERTS_OPENBAO_PKI_CA_URI_SANS\""
@@ -260,17 +260,16 @@ if [ ! -f /opt/openbao/data/configured ]; then
     allow_glob_domains=true \
     allowed_domains=\"*\" \
     allowed_uri_sans=\"*\" \
-    allowed_other_sans=\"*\" \
+    allowed_other_sans=\"2.99999.1.0;UTF8:*,2.99999.1.1;UTF8:*,2.99999.1.2;UTF8:*\" \
     server_flag=true \
     client_flag=true \
     code_signing_flag=false \
     email_protection_flag=false \
-    key_type=rsa \
-    key_bits=2048 \
+    key_type=any \
     key_usage=\"DigitalSignature,KeyEncipherment,KeyAgreement\" \
     ext_key_usage=\"ServerAuth,ClientAuth,OCSPSigning\" \
     use_csr_common_name=true \
-    use_csr_sans=false \
+    use_csr_sans=true \
     max_ttl=720h \
     ttl=720h"
 
