@@ -15,6 +15,7 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"crypto/x509/pkix"
+	"encoding/asn1"
 	"encoding/base64"
 	"encoding/json"
 	"encoding/pem"
@@ -759,6 +760,35 @@ func (sdk mgSDK) CreateCSR(metadata certs.CSRMetadata, privKey any) (certs.CSR, 
 		ExtraExtensions: metadata.ExtraExtensions,
 	}
 
+	// Your attestation blobs (replace with real []byte values from provider)
+	snpAttBytes := []byte{0xde, 0xad, 0xbe, 0xef}
+	azureAttBytes := []byte{0xa1, 0xb2, 0xc3, 0xd4}
+	tdxAttBytes := []byte{0xfe, 0xed, 0xfa, 0xce}
+
+	// Build extensions
+	attestationExts := []pkix.Extension{
+		{
+			Id:       asn1.ObjectIdentifier{2, 99999, 1, 0}, // SNP
+			Critical: false,
+			Value:    snpAttBytes,
+		},
+		{
+			Id:       asn1.ObjectIdentifier{2, 99999, 1, 1}, // Azure
+			Critical: false,
+			Value:    azureAttBytes,
+		},
+		{
+			Id:       asn1.ObjectIdentifier{2, 99999, 1, 2}, // TDX
+			Critical: false,
+			Value:    tdxAttBytes,
+		},
+	}
+
+	// Append to CSR template
+	template.ExtraExtensions = append(template.ExtraExtensions, attestationExts...)
+
+	fmt.Printf("Adding %d extra exts\n", len(attestationExts))
+
 	for _, ip := range metadata.IPAddresses {
 		parsedIP := net.ParseIP(ip)
 		if parsedIP != nil {
@@ -800,6 +830,9 @@ func (sdk mgSDK) CreateCSR(metadata certs.CSRMetadata, privKey any) (certs.CSR, 
 		CSR: csrPEM,
 	}
 
+	fmt.Println("CSR created successfully with attestation extensions")
+
+	fmt.Println(string(csr.CSR))
 	return csr, nil
 }
 
