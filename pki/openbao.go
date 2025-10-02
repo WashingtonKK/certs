@@ -612,15 +612,21 @@ func (agent *openbaoPKIAgent) SignCSR(csr []byte, ttl string) (certs.Certificate
 		existingIPs = append(existingIPs, ip.String())
 	}
 
-	var otherSANs []string
-	for _, ext := range csrData.Extensions {
-		if ext.Id.Equal(asn1.ObjectIdentifier{2, 5, 29, 17}) {
-			continue
-		}
-		oidStr := ext.Id.String()
-		valueBase64 := base64.StdEncoding.EncodeToString(ext.Value)
-		otherSANs = append(otherSANs, fmt.Sprintf("%s;BASE64:%s", oidStr, valueBase64))
-	}
+    // Collect non-SAN extensions from CSR to preserve verbatim as true X.509 extensions
+    // Do not filter by specific OIDs; forward whatever the CSR includes (except SAN 2.5.29.17).
+    extraExtensions := make([]map[string]any, 0)
+    for _, ext := range csrData.Extensions {
+        // Skip SAN extension here; SANs are handled separately via alt_names/ip_sans/use_csr_sans
+        if ext.Id.Equal(asn1.ObjectIdentifier{2, 5, 29, 17}) {
+            continue
+        }
+        extraExtensions = append(extraExtensions, map[string]any{
+            "oid":      ext.Id.String(),
+            "critical": ext.Critical,
+            // value must be base64-encoded DER of the extension value
+            "value":    base64.StdEncoding.EncodeToString(ext.Value),
+        })
+    }
 
 	defaultDNSNames, defaultIPSANs, err := agent.getIntermediateCADefaultSANs()
 	if err != nil {
@@ -675,11 +681,10 @@ func (agent *openbaoPKIAgent) SignCSR(csr []byte, ttl string) (certs.Certificate
 		secretValues["ip_sans"] = ipSansValue
 	}
 
-	// Add custom extensions (attestation OIDs) to other_sans
-	if len(otherSANs) > 0 {
-		otherSansValue := strings.Join(otherSANs, ",")
-		secretValues["other_sans"] = otherSansValue
-	}
+    // Preserve custom attestation extensions using extra_extensions
+    if len(extraExtensions) > 0 {
+        secretValues["extra_extensions"] = extraExtensions
+    }
 
 	secret, err := agent.client.Logical().Write(agent.signURL, secretValues)
 	if err != nil {

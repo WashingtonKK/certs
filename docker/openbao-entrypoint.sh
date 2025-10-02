@@ -260,7 +260,6 @@ if [ ! -f /opt/openbao/data/configured ]; then
     allow_glob_domains=true \
     allowed_domains=\"*\" \
     allowed_uri_sans=\"*\" \
-    allowed_other_sans=\"2.99999.1.0;UTF8:*,2.99999.1.1;UTF8:*,2.99999.1.2;UTF8:*\" \
     server_flag=true \
     client_flag=true \
     code_signing_flag=false \
@@ -272,6 +271,11 @@ if [ ! -f /opt/openbao/data/configured ]; then
     use_csr_sans=true \
     max_ttl=720h \
     ttl=720h"
+
+  if [ -n "$AM_CERTS_OPENBAO_PKI_ALLOWED_EXTENSIONS" ]; then
+    ROLE_CMD="${ROLE_CMD%\"} \
+    allowed_extensions=\\"$AM_CERTS_OPENBAO_PKI_ALLOWED_EXTENSIONS\\"\""
+  fi
 
   eval "$ROLE_CMD" > /dev/null
 
